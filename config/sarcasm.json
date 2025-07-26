@@ -1,7 +1,7 @@
 {
     "dataset": {
         "dataset_name": "sarcasm",
-        "data_root":"/data/php_code/data_processing"
+        "data_root":"your sarcasm data path"
     },
     "visual": {
         "name": "resnet50"
