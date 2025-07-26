@@ -81,6 +81,7 @@ def train_audio_video(epoch, train_loader, model, optimizer, logger, gs_plugin=N
     criterion = nn.CrossEntropyLoss(reduction='none').cuda()
     score_v = 0.0
     score_a = 0.0
+    alpha_t = 0.0
 
     for step, (spectrogram, image, y) in enumerate(train_loader):
         image = image.float().cuda()
@@ -139,11 +140,11 @@ def train_audio_video(epoch, train_loader, model, optimizer, logger, gs_plugin=N
         intra = sim_loss(r_a, r_a, S_y) + sim_loss(r_v, r_v, S_y)
 
         gs_plugin.exp_count += 1
-        if epoch + 1 <=70:
-            loss = loss_a * merge_alpha + loss_v * (1 - merge_alpha) + 0.1 * (d_af + d_vf) + 0.01 * (intra + inter)
+        if score_a >= score_v:
+            alpha_a = 0.7
         else:
-            loss = loss_a * merge_alpha + loss_v * (1 - merge_alpha) + 0.1 * (d_af + d_vf) + 0.0015 * (d_av) + 0.01 * (intra + inter)
-        # loss = loss_a * merge_alpha + loss_v * (1 - merge_alpha)
+            alpha_a = 0.3
+        loss = loss_a * merge_alpha + loss_v * (1 - merge_alpha) + alpha_a * d_af + (1-alpha_a) * d_vf + 0.01 * (intra + inter
 
         loss.backward()
         optimizer.step()
