@@ -1,7 +1,7 @@
 {
     "dataset": {
         "dataset_name": "nvGesture",
-        "data_root":"/data/php/nvGesture/"
+        "data_root":"your nvgesture data path"
     },
     "visual": {
         "name": "RODModel"
