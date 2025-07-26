@@ -1,7 +1,7 @@
 {
     "dataset": {
         "dataset_name": "vgg_sound",
-        "data_root":"/data/wfq/paper/down/precessed_VGGSound"
+        "data_root":"your vgg data path"
     },
     "visual": {
         "name": "resnet18"
