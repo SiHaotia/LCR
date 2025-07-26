@@ -52,61 +52,6 @@ import time
 
 
 
-def tsne(features, labels, n_components=2, perplexity=30, learning_rate=200, random_state=42, saved_fig_path='./npy/sht_audio.pdf',
-         save_data_path='./npy/sht_audio.npz'):
-    """
-    t-SNE visualization.
-
-    Parameters:
-        features (numpy.ndarray): High-dimensional data (e.g., features of shape (n_samples, n_features)).
-        labels (numpy.ndarray): Labels for the data (e.g., shape (n_samples,)).
-        n_components (int): Number of dimensions for t-SNE (default=2).
-        perplexity (float): Perplexity parameter for t-SNE (default=30).
-        learning_rate (float): Learning rate for t-SNE (default=200).
-        random_state (int): Random state for reproducibility (default=42).
-
-    Returns:
-        None
-    """
-    # Initialize t-SNE
-    tsne = TSNE(n_components=n_components, perplexity=perplexity, learning_rate=learning_rate,
-                random_state=random_state)
-
-    ######################
-    # # 计算每个类别的聚类中心
-    # unique_labels = np.unique(labels)
-    # cluster_centers = np.array([features[labels == label].mean(axis=0) for label in unique_labels])
-
-    # # 计算每个样本到其所属类别的聚类中心的距离
-    # all_distances = np.linalg.norm(features - cluster_centers[labels], axis=1)
-
-    # # 计算所有样本到聚类中心的平均距离
-    # avg_distance = np.mean(all_distances)
-    # print(avg_distance)
-    # return
-    #########################
-
-    # Fit and transform the features
-    reduced_features = tsne.fit_transform(features)
-    np.savez(save_data_path, reduced_features=reduced_features, labels=labels)
-
-    cmap = plt.cm.Set2  # Change colormap if desired
-    unique_labels = np.unique(labels)
-    colors = cmap(np.linspace(0, 1, len(unique_labels)))  # Map discrete labels to colors
-    color_map = {label: colors[i] for i, label in enumerate(unique_labels)}
-
-    # 创建一个散点图
-    plt.figure(figsize=(10, 6))
-
-    plt.scatter(reduced_features[:, 0], reduced_features[:, 1],
-                c=[color_map[label] for label in labels], s=40, alpha=0.9)
-    plt.axis('off')
-    # plt.colorbar(scatter, label="Class")
-    # plt.title("LCR t-SNE Visualization", fontsize=18)
-    # plt.xlabel("t-SNE Component 1")
-    # plt.ylabel("t-SNE Component 2")
-    # plt.grid(True)
-    plt.savefig(saved_fig_path)
 
 
 def compute_mAP(outputs, labels):
@@ -467,49 +412,6 @@ if __name__ == '__main__':
             print('Find a better model and save it!')
             logger.info('Find a better model and save it!')
             m_name = cfg['visual']['name'] + '_' + cfg['text']['name']
-            data1 = np.load('/data/wfq/sht/MML/project1/npy/cremad_audio.npy', allow_pickle=True)
-            data2 = np.load('/data/wfq/sht/MML/project1/npy/cremad_video.npy', allow_pickle=True)
-            label = np.load('/data/wfq/sht/MML/project1/npy/cremad_label.npy', allow_pickle=True)
-            label = label.reshape(744, 6)
-            label = np.argmax(label, axis=1)
-            tsne(data1, label, saved_fig_path=f'./npy/lCR_audio_creamd_{epoch}.pdf')
-            tsne(data2, label, saved_fig_path=f'./npy/lCR_video_creamd_{epoch}.pdf')
             # torch.save(model.state_dict(), '/data/sht/MultiModel_imbalance/project1/checkpoint/crema_LCR_best_model.pth')
         torch.cuda.empty_cache()
 
-    plt.figure(figsize=(12, 6))
-
-    # 绘制验证准确率
-    plt.plot(range(1, cfg['train']['epoch_dict'] + 1), w_a_list, label='audio weight', marker='s')
-    plt.plot(range(1, cfg['train']['epoch_dict'] + 1), w_v_list, label='video weight', marker='s')
-
-
-    # 图形美化
-    plt.title('Weight change of multi Modalities per Epoch', fontsize=24)
-    plt.xlabel('Epoch', fontsize=24)
-    plt.ylabel('Weight', fontsize=24)
-    plt.legend(fontsize=12)
-    plt.grid(True)
-    plt.tight_layout()
-
-    save_path = './weight_change.pdf'  # 保存路径
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')  # 设置分辨率为300 DPI，优化边框
-
-
-    # plt.figure(figsize=(12, 6))
-    # # 绘制验证准确率
-    # plt.plot(range(1, cfg['train']['epoch_dict'] + 1), acc_a_list, label='modal_a_Acc', marker='s')
-    # plt.plot(range(1, cfg['train']['epoch_dict'] + 1), acc_v_list, label='modal_v_Acc', marker='s')
-    # plt.plot(range(1, cfg['train']['epoch_dict'] + 1), acc_list, label='modal_total_Acc', marker='s')
-    #
-    # # 图形美化
-    # plt.title('Accuracies of multi Modalities per Epoch', fontsize=16)
-    # plt.xlabel('Epoch', fontsize=14)
-    # plt.ylabel('Accuracy', fontsize=14)
-    # plt.legend(fontsize=12)
-    # plt.grid(True)
-    # plt.tight_layout()
-
-    # # 保存图表
-    # save_path = './sht_modality_accuracies_type2.png'  # 保存路径
-    # plt.savefig(save_path, dpi=300, bbox_inches='tight')  # 设置分辨率为300 DPI，优化边框
