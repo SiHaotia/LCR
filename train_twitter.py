@@ -108,7 +108,9 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
 
         if score_t>=score_i:
             alpha_t = 0.7
-            loss = loss_i * merge_alpha + loss_t * (1 - merge_alpha) + alpha_t * d_tl + (1 - alpha_t) * d_il  + 0.001 * (d_it) + 0.01 * (inter + intra)
+        else:
+            alpha_t = 0.3
+        loss = loss_i * merge_alpha + loss_t * (1 - merge_alpha) + alpha_t * d_tl + (1 - alpha_t) * d_il  + 0.001 * (d_it) + 0.01 * (inter + intra)
 
         loss.backward()
         optimizer.step()
