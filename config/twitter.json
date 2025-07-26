@@ -1,0 +1,55 @@
+{
+    "dataset": {
+        "dataset_name": "twitter",
+        "data_root":"/data/php_code/data_processing/Twitter15"
+    },
+    "visual": {
+        "name": "resnet50"
+    },
+    "text": {
+        "name": "bert-base"
+    },
+    "loss": {
+        "type": "CrossEntropy"
+    },
+    "train": {
+        "epoch_dict" : 50,
+        "batch_size":32,
+        "mixup_alpha": 0.9,
+        "temperature1" : 0.4,
+        "flat_ratio": 0.3,
+        "noise_ratio": 1.0e-15,
+        "noise_ratio_cls":1.0e-15,
+        "up_limit": 1.0,
+        "optimizer": {
+            "type": "ADAM",
+            "momentum": 0.9,
+            "lr":1e-5,
+            "wc" :1.0e-4
+        },
+        "lr_scheduler":{
+            "type": "warmup",
+            "lr_step": [160, 180],
+            "lr_factor": 0.1,
+            "warmup_epoch": 2,
+            "patience":30
+        }
+    },
+    "test": {
+        "batch_size":32,
+        "num_workers":8
+    },
+    "setting": {
+        "type": "Twitter Classification",
+        "num_class": 3,
+        "num_layers": 5
+    },
+    "seed": 42,
+    "gpu_id": "2",
+    "image_res": 224,
+    "train_file":  "/data/php_code/data_processing/Twitter15/annotations/train.tsv",
+    "test_file": "/data/php_code/data_processing/Twitter15/annotations/test.tsv",
+    "image_root": "/data/php_code/data_processing/Twitter15/twitter2015_images/",
+    "max_tokens" : 30,
+    "debug": false
+}
