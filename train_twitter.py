@@ -64,8 +64,8 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
     criterion = nn.CrossEntropyLoss(reduction='none').cuda()
     score_t = 0.0
     score_i = 0.0
-
-    tokenizer = BertTokenizer.from_pretrained('/data/hlf/imbalance/unimodal/bert-base-uncased')
+    alpha_t = 0.0 
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     for step, (image, text, y) in enumerate(train_loader):
         image = image.cuda()
         y = y.cuda()
@@ -78,12 +78,6 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
             w_ = torch.Tensor([[float(s_t)], [float(s_i)]]).cuda()
             w = model.rein_network1(w_.unsqueeze(0))
 
-        # o_i = model.visual_encoder(image)
-        # o_i = model.i2t(o_i)
-        # o_t = model.text_encoder(text_input.input_ids,
-        #                          attention_mask=text_input.attention_mask,
-        #                          return_dict=True
-        #                          ).last_hidden_state[:, 0, :]
 
         o_i, o_t, o_l = model(image, text_input)
         e_i = exp_map_poincare(o_i)
@@ -92,10 +86,6 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
         d_il = compute_pfc_loss(e_i, e_l)
         d_tl = compute_pfc_loss(e_t, e_l)
         d_it = triplet_cosine_loss(o_i, o_t)
-        # d_il = torch.sum(torch.norm(o_i - o_l))
-        # d_tl = torch.sum(torch.norm(o_t - o_l))
-        # d_it = torch.sum(torch.norm(o_i - o_t))
-        # print(o_i.shape, o_t.shape, o_l.shape)
         hide_l = model.embedding_l(o_l)
         out_i, r_i, o_fea, add_fea = model.classfier(o_i, hide_l, w[:, 0][0], is_i=True)
         if add_fea is None:
@@ -116,7 +106,9 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
         inter = sim_loss(r_i, r_t, S_y) + sim_loss(r_t, r_i, S_y)
         intra = sim_loss(r_i, r_i, S_y) + sim_loss(r_t, r_t, S_y)
 
-        loss = loss_i * merge_alpha + loss_t * (1 - merge_alpha) + 0.08 * (d_tl + d_il ) + 0.001 * (d_it) + 0.01 * (inter + intra)
+        if score_t>=score_i:
+            alpha_t = 0.7
+            loss = loss_i * merge_alpha + loss_t * (1 - merge_alpha) + alpha_t * d_tl + (1 - alpha_t) * d_il  + 0.001 * (d_it) + 0.01 * (inter + intra)
 
         loss.backward()
         optimizer.step()
@@ -164,14 +156,7 @@ def train_text_image(epoch, train_loader, model, optimizer, logger, gs_plugin=No
             logger.info((
                 'Epoch:{epoch}, Trainnig Loss:{train_loss:.3f}, Training Loss_a:{loss_a:.3f}, Training Loss_v:{loss_v:.3f}, distance_il:{dis_il:.2f}, distance_tl:{dis_tl:.2f}, ').format(
                 epoch=epoch, train_loss=loss.item(), loss_a=loss_i.item(), loss_v=loss_t.item(), dis_il=d_il.item(), dis_tl=d_tl.item()))
-        # if (step+1) % 100 == 0:
-        #     logger.info(('ratio: {ratio_i:.3f}').format(ratio_i=score_i / score_t))
-        #     if score_i / score_t > 1.1:
-        #         logger.info("add_layer_t")
-        #         model.add_layer(is_i=False)
-        #     elif score_i / score_t < 0.9:
-        #         logger.info("add_layer_i")
-        #         model.add_layer(is_i=True)
+
     ratio_a = score_i / score_t
     loss_ave = tl.item()
     loss_a_ave = ta.item()
@@ -207,7 +192,7 @@ def val(epoch, val_loader, model, logger, merge_alpha=0.5):
     # criterion = nn.CrossEntropyLoss().cuda()
     with torch.no_grad():
         for step, (image, text, y) in enumerate(val_loader):
-            tokenizer = BertTokenizer.from_pretrained('/data/hlf/imbalance/unimodal/bert-base-uncased')
+            tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
             label_list = label_list + torch.argmax(y, dim=1).tolist()
             image = image.cuda()
             y = y.cuda()
@@ -251,7 +236,7 @@ def val(epoch, val_loader, model, logger, merge_alpha=0.5):
 if __name__ == '__main__':
     # ----- LOAD PARAM -----
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',type=str, default='/data/sht/MultiModel_imbalance/project1/data/twitter.json')
+    parser.add_argument('--config',type=str, default='./config/twitter.json')
     parser.add_argument('--lam', default=1.0, type=float, help='GPU ids')
     parser.add_argument('--merge_alpha', default=0.4, type=float, help='2 modal fusion alpha in GS')
 
@@ -331,11 +316,3 @@ if __name__ == '__main__':
             logger.info('Find a better model and save it!')
             m_name = cfg['visual']['name'] + '_' + cfg['text']['name']
             torch.save(model.state_dict(), 'twitter_best_model.pth')
-        # if ((epoch+1) % check == 0 or epoch == 0):
-        #     logger.info(('ratio: {ratio_i:.3f}').format(ratio_i=ratio_a))
-        #     if ratio_a > args.lam+0.01:
-        #         logger.info("add_layer_t")
-        #         model.add_layer(is_i=False)
-        #     elif ratio_a < args.lam-0.01:
-        #         logger.info("add_layer_i")
-        #         model.add_layer(is_i=True)
