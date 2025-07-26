@@ -1,7 +1,7 @@
 {
     "dataset": {
         "dataset_name": "twitter",
-        "data_root":"/data/php_code/data_processing/Twitter15"
+        "data_root":"your twitter data path"
     },
     "visual": {
         "name": "resnet50"
@@ -47,9 +47,9 @@
     "seed": 42,
     "gpu_id": "2",
     "image_res": 224,
-    "train_file":  "/data/php_code/data_processing/Twitter15/annotations/train.tsv",
-    "test_file": "/data/php_code/data_processing/Twitter15/annotations/test.tsv",
-    "image_root": "/data/php_code/data_processing/Twitter15/twitter2015_images/",
+    "train_file":  "train.tsv",
+    "test_file": "test.tsv",
+    "image_root": "twitter2015_images",
     "max_tokens" : 30,
     "debug": false
 }
