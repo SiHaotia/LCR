@@ -13,9 +13,9 @@ class TextModel(nn.Module):
     def __init__(self, config=None):
         super().__init__()
         if config['text']["name"] == 'bert-base':
-            self.text_encoder = BertModel.from_pretrained('/data/hlf/imbalance/unimodal/bert-base-uncased', add_pooling_layer=False)
+            self.text_encoder = BertModel.from_pretrained('bert-base-uncased', add_pooling_layer=False)
         elif config['text']["name"] == 'bert-large':
-            self.text_encoder = BertModel.from_pretrained('/data/hlf/imbalance/unimodal/bert-large-uncased', add_pooling_layer=False)
+            self.text_encoder = BertModel.from_pretrained('bert-large-uncased', add_pooling_layer=False)
         self.hidden_dim = self.text_encoder.config.hidden_size
         self.linear1 = nn.Linear(self.hidden_dim, 256)
         self.linear2 = nn.Linear(self.hidden_dim, 256)
