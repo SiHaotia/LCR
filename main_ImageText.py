@@ -238,7 +238,7 @@ def val(epoch, val_loader, model, logger, merge_alpha=0.5):
 if __name__ == '__main__':
     # ----- LOAD PARAM -----
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',type=str, default='./config/twitter.json')
+    parser.add_argument('--config',type=str, default='image text config file in ./confif')
     parser.add_argument('--lam', default=1.0, type=float, help='GPU ids')
     parser.add_argument('--merge_alpha', default=0.4, type=float, help='2 modal fusion alpha in GS')
 
@@ -318,3 +318,4 @@ if __name__ == '__main__':
             logger.info('Find a better model and save it!')
             m_name = cfg['visual']['name'] + '_' + cfg['text']['name']
             torch.save(model.state_dict(), 'twitter_best_model.pth')
+
