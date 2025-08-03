@@ -18,15 +18,15 @@ class VisualModel(nn.Module):
         # https://github.com/pytorch/vision/blob/main/torchvision/models/resnet.py
         if config['visual']["name"] == 'resnet18':
             self.visual_encoder = torchvision.models.resnet18()
-            checkpoint = torch.load('/data/hlf/imbalance/unimodal/checkpoint/resnet18-f37072fd.pth')
+            checkpoint = torch.load('your pretrained resnet18 path')
             self.visual_encoder.load_state_dict(checkpoint)
         elif config['visual']["name"] == 'resnet34':
             self.visual_encoder = torchvision.models.resnet34()
-            checkpoint = torch.load('/data/hlf/imbalance/unimodal/checkpoint/resnet34-333f7ec4.pth')
+            checkpoint = torch.load('your pretrained resnet34 path')
             self.visual_encoder.load_state_dict(checkpoint)
         elif config['visual']["name"] == 'resnet50':
             self.visual_encoder = torchvision.models.resnet50()
-            checkpoint = torch.load('/data/hlf/imbalance/unimodal/checkpoint/resnet50-0676ba61.pth')
+            checkpoint = torch.load('your pretrained resnet50 path')
             self.visual_encoder.load_state_dict(checkpoint)
         self.hidden_dim = self.visual_encoder.fc.out_features
         self.linear1 = nn.Linear(self.hidden_dim, 256)
