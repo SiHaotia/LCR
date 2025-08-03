@@ -15,15 +15,15 @@ class VTGBShareModel_newModal(nn.Module):
     def __init__(self, config=None):
         super().__init__()
         if config['text']["name"] == 'bert-base':
-            self.text_encoder = BertModel.from_pretrained('/data/hlf/imbalance/unimodal/bert-base-uncased', add_pooling_layer=False)
-            self.tokenizer = BertTokenizer.from_pretrained('/data/hlf/imbalance/unimodal/bert-base-uncased')
+            self.text_encoder = BertModel.from_pretrained('bert-base-uncased', add_pooling_layer=False)
+            self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         if config['visual']["name"] == 'resnet50':
             self.visual_encoder = torchvision.models.resnet50()
-            checkpoint = torch.load('/data/hlf/imbalance/unimodal/checkpoint/resnet50-0676ba61.pth')
+            checkpoint = torch.load('your pretrained vision pth file')
             self.visual_encoder.load_state_dict(checkpoint)
 
         self.learned_encoder = torchvision.models.resnet50()
-        checkpoint = torch.load(('/data/hlf/imbalance/unimodal/checkpoint/resnet50-0676ba61.pth'))
+        checkpoint = torch.load(('your pretrained vision pth file'))
         self.visual_encoder.load_state_dict(checkpoint)
 
         self.learned_modal = nn.Parameter(torch.randn(1, 3, 224, 224), requires_grad=True)
