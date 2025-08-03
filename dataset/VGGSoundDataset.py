@@ -25,15 +25,15 @@ class VGGSound(Dataset):
         test_audio_data = []
         train_label = []
         test_label = []
-        with open("/data/hlf/imbalance/precessed_VGGSound/label_encoding.json", 'r') as f:
+        with open("your label json file", 'r') as f:
             class_class = json.load(f)
 
         if mode == "train":
-            with open('/data/hlf/imbalance/precessed_VGGSound/train.csv') as f:
+            with open('your train csv') as f:
                 csv_reader = csv.reader(f)
                 for item in csv_reader:
-                    audio_dir = os.path.join("/data/hlf/imbalance/precessed_VGGSound/AudioWAV", item[2][1:] + ".wav")
-                    video_dir = os.path.join("/data/hlf/imbalance/precessed_VGGSound/Image-01-FPS", item[2][1:])
+                    audio_dir = os.path.join("your audio path", item[2][1:] + ".wav")
+                    video_dir = os.path.join("your video path", item[2][1:])
                     if os.path.exists(video_dir) and os.path.exists(audio_dir) and len(os.listdir(video_dir)) > 3:
                         train_video_data.append(video_dir)
                         train_audio_data.append(audio_dir)
@@ -43,12 +43,12 @@ class VGGSound(Dataset):
                 self.audio = train_audio_data
                 self.label = train_label
         elif mode == "test":
-            with open('/data/hlf/imbalance/precessed_VGGSound/test.csv') as f:
+            with open('your test csv') as f:
                 csv_reader = csv.reader(f)
                 for item in csv_reader:
 
-                    audio_dir = os.path.join("/data/hlf/imbalance/precessed_VGGSound/AudioWAV", item[2][1:] + ".wav")
-                    video_dir = os.path.join("/data/hlf/imbalance/precessed_VGGSound/Image-01-FPS", item[2][1:])
+                    audio_dir = os.path.join("your audio path", item[2][1:] + ".wav")
+                    video_dir = os.path.join("your video path", item[2][1:])
                     if os.path.exists(video_dir) and os.path.exists(audio_dir) and len(os.listdir(video_dir)) > 3:
                         test_video_data.append(video_dir)
                         test_audio_data.append(audio_dir)
