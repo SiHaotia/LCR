@@ -48,8 +48,7 @@ class VTGBShareModel_newModal(nn.Module):
         self.num_class = config['setting']['num_class']
 
         self.fc_out = nn.Linear(256, self.num_class)
-        self.additional_layers_i = nn.ModuleList()
-        self.additional_layers_t = nn.ModuleList()
+        
         self.relu = nn.ReLU()
         self.rein_network1 = nn.Sequential(
             nn.Linear(1, 512),
@@ -72,16 +71,7 @@ class VTGBShareModel_newModal(nn.Module):
 
         return image_embeds, text_embeds, learned_embeds
 
-    def add_layer(self, is_i=True):
-        new_layer = nn.Linear(self.text_encoder.config.hidden_size, 256).cuda()
-        nn.init.xavier_normal_(new_layer.weight)
-        nn.init.constant_(new_layer.bias, 0)
-        if is_i:
-
-            self.additional_layers_i.append(new_layer)
-        else:
-
-            self.additional_layers_t.append(new_layer)
+    
 
     def classfier(self, x, hide_l, w, is_i=True):
         if is_i:
