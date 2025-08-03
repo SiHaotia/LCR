@@ -19,7 +19,7 @@ from sklearn.metrics import f1_score, average_precision_score
 from data.template import config
 from dataset.nvGesture import NvGestureDataset
 from model.RODModel import RGBClsModel, OFClsModel, DepthClsModel, JointClsModel, JointShareReinClsModel, JointGBShareReinClsModel_LMM
-from utils.loss import mixup_criterion
+from utils.loss import exp_map_poincare, compute_pfc_loss, triplet_cosine_loss, sim_loss, mixup_criterion
 
 from utils.utils import (
     create_logger,
@@ -56,6 +56,9 @@ def train_r_o_d(epoch, train_loader, model, optimizer, logger,  gs_plugin=None, 
     dr = Averager()
     do = Averager()
     dd = Averager()
+    alpha_r = 0.3
+    alpha_o = 0.3
+    alpha_d = 0.3
 
     len_dataloader = len(train_loader)
     criterion = nn.CrossEntropyLoss(reduction='none').cuda()
@@ -68,6 +71,7 @@ def train_r_o_d(epoch, train_loader, model, optimizer, logger,  gs_plugin=None, 
         of = of.cuda()
         depth = depth.cuda()
         y = y.cuda()
+        S_y = y @ y.T
 
         optimizer.zero_grad()
 
@@ -75,45 +79,52 @@ def train_r_o_d(epoch, train_loader, model, optimizer, logger,  gs_plugin=None, 
             w_ = torch.Tensor([[float(s_r)], [float(s_o)], [float(s_d)]]).cuda()
             w = model.rein_network1(w_.unsqueeze(0))
 
-        # o_r = model.rgb_encoder(rgb)
-        # o_o = model.of_encoder(of)
-        # o_d = model.depth_encoder(depth)
 
         o_r, o_o, o_d, o_l = model(rgb, of, depth)
-        # print(o_r.shape, o_o.shape, o_d.shape, o_l.shape)
+        e_r = exp_map_poincare(o_r)
+        e_o = exp_map_poincare(o_o)
+        e_d = exp_map_poincare(o_d)
+        e_l = exp_map_poincare(o_l)
+        d_rl = compute_pfc_loss(e_r, e_l)
+        d_ol = compute_pfc_loss(e_o, e_l)
+        d_dl = compute_pfc_loss(e_d, e_l)
 
-        d_rl = torch.sum(torch.nn.functional.cosine_similarity(o_r, o_l))
-        d_ol = torch.sum(torch.nn.functional.cosine_similarity(o_o, o_l))
-        d_dl = torch.sum(torch.nn.functional.cosine_similarity(o_d, o_l))
 
-        hide_l = model.emb_l(o_l)
+        
         # rgb
-        out_r, r, o_fea, add_fea = model.classfier(o_r, hide_l, w[:, 0][0], is_i='rgb')
-        if add_fea is None:
-            loss_r = criterion(out_r, y).mean()
-        else:
-            kl = y * o_fea.detach().softmax(1)
-            loss_r = criterion(out_r, y).mean() + criterion(o_fea, y).mean() + criterion(add_fea, y).mean() - 0.2 * criterion(add_fea, kl).mean()
+        out_r, r_r, o_fea, add_fea = model.classfier(e_r, e_l, w[:, 0][0], is_i='rgb')
+        
+        loss_r = criterion(out_r, y).mean()
+        
 
         # of
-        out_o, r, o_fea, add_fea = model.classfier(o_o, hide_l, w[:, 1][0], is_i='of')
-        if add_fea is None:
-            loss_o = criterion(out_o, y).mean()
-        else:
-            kl = y * o_fea.detach().softmax(1)
-            loss_o = criterion(out_o, y).mean() + criterion(o_fea, y).mean() + criterion(add_fea,y).mean() - 0.2 * criterion(add_fea, kl).mean()
+        out_o, r_o, o_fea, add_fea = model.classfier(o_o, hide_l, w[:, 1][0], is_i='of')
+        
+        loss_o = criterion(out_o, y).mean()
+        
 
         # depth
-        out_d, r, o_fea, add_fea = model.classfier(o_d, hide_l, w[:, 2][0], is_i='depth')
-        if add_fea is None:
-            loss_d = criterion(out_d, y).mean()
-        else:
-            kl = y * o_fea.detach().softmax(1)
-            loss_d = criterion(out_d, y).mean() + criterion(o_fea, y).mean() + criterion(add_fea,y).mean() - 0.2 * criterion(add_fea, kl).mean()
-        # print(loss_v)
+        out_d, r_d, o_fea, add_fea = model.classfier(o_d, hide_l, w[:, 2][0], is_i='depth')
+        
+        loss_d = criterion(out_d, y).mean()
+        
+        inter = 1/3 *( sim_loss(r_r, r_o, S_y) + sim_loss(r_o, r_r, S_y) + sim_loss(r_r, r_d, S_y) + sim_loss(r_d, r_r, S_y) + sim_loss(r_d, r_o, S_y) + sim_loss(r_o, r_d, S_y) )
 
-
-        loss = loss_r * merge_alpha1 + loss_o * merge_alpha2 + loss_d * (1 - merge_alpha1 - merge_alpha2) + 0.00025 * (d_rl + d_ol + d_dl)
+        if ratio_r > 0.5:
+            alpha_r = 0.5
+            alpha_o = 0.25
+            alpha_d = 0.25
+        elif ratio_o > 0.5:
+            alpha_r = 0.25
+            alpha_o = 0.5
+            alpha_d = 0.25
+        elif ratio_d > 0.5:
+            alpha_r = 0.25
+            alpha_o = 0.25
+            alpha_d = 0.5
+            
+        
+        loss = loss_r * merge_alpha1 + loss_o * merge_alpha2 + loss_d * (1 - merge_alpha1 - merge_alpha2) + 0.5 * (alpha_r * d_rl + alpha_o * d_ol + alpha_d * d_dl) + 0,5 * inter
         loss.backward()
         # gs_plugin.before_update(model.fc_out, r,
         #                         step, len_dataloader, gs_plugin.exp_count)
@@ -151,17 +162,17 @@ def train_r_o_d(epoch, train_loader, model, optimizer, logger,  gs_plugin=None, 
         if s_r > 0.5:
             # a_list = [1]*max(len(model.additional_layers_a)-1, 0) + [0]*(min(10-len(model.additional_layers_a)+1, 10))
             # v_list = [1] * len(model.additional_layers_v) + [0] * (10 - len(model.additional_layers_v))
-            r_list = [0] * 1
+            r_list = [0.25] * 1
         else:
-            r_list = [1] * 1
+            r_list = [0.5] * 1
         if s_o > 0.5:
-            o_list = [0] * 1
+            o_list = [0.25] * 1
         else:
-            o_list = [1] * 1
+            o_list = [0.5] * 1
         if s_d > 0.5:
-            d_list = [0] * 1
+            d_list = [0.25] * 1
         else:
-            d_list = [1] * 1
+            d_list = [0.5] * 1
         w_label = torch.Tensor([r_list, o_list, d_list]).unsqueeze(0).cuda()
         loss_w = criterion2(w, w_label)
         loss_w = loss_w.mean()
@@ -257,7 +268,7 @@ if __name__ == '__main__':
 
     # ----- LOAD PARAM -----
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, default='/data/hlf/imbalance/unimodal/data/nvGesture.json')
+    parser.add_argument('--config', type=str, default='your trmodal config file in ./config')
     parser.add_argument('--lam', default=0.4, type=float, help='lam')
     parser.add_argument('--merge_alpha1', default=0.33, type=float, help='modal fusion alpha in GS')
     parser.add_argument('--merge_alpha2', default=0.33, type=float, help='modal fusion alpha in GS')
@@ -337,14 +348,4 @@ if __name__ == '__main__':
             logger.info('Find a better model and save it!')
             m_name = cfg['visual']['name'] + '_' + cfg['text']['name']
             torch.save(model.state_dict(), f'nvGesture_best_reinmodel.pth')
-        # if ((epoch + 1) % check == 0 or epoch == 0):
-        #     logger.info(('ratio_r: {ratio_r:.3f}, ratio_o: {ratio_o:.3f}, ratio_d: {ratio_d:.3f},').format(ratio_r=ratio_r,ratio_o=ratio_o,ratio_d=ratio_d))
-        #     if ratio_r < args.lam:
-        #         logger.info("add_layer_r")
-        #         model.add_layer(is_i='rgb')
-        #     if ratio_o < args.lam:
-        #         logger.info("add_layer_o")
-        #         model.add_layer(is_i='of')
-        #     if ratio_d < args.lam:
-        #         logger.info("add_layer_d")
-        #         model.add_layer(is_i='depth')
+        
